@@ -1,0 +1,28 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Resources": {
+    "gluejobcrawler": {
+      "Type": "AWS::Glue::Crawler",
+      "Properties": {
+        "Role": "gluejobrole1",
+        "Targets": {
+          "S3Targets": [
+            {
+              "Exclusions": [
+                " "
+              ],
+              "Path": "s3://glue-testing-etl-targets/gluejob2/"
+            }
+          ]
+        },
+        "DatabaseName": "database101",
+        "Description": "This crawler is for glue job 2 ",
+        "Name": "gluejob2crawler",
+        "SchemaChangePolicy": {
+          "DeleteBehavior": "DELETE_FROM_DATABASE",
+          "UpdateBehavior": "UPDATE_IN_DATABASE"
+        }
+      }
+    }
+  }
+}

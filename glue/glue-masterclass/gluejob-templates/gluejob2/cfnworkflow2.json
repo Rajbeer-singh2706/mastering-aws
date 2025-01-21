@@ -1,0 +1,51 @@
+{
+  "Resources": {
+    "glueworkflow": {
+      "Type": "AWS::Glue::Workflow",
+      "Properties": {
+        "Description": "first cfn workflow",
+        "Name": "gluejob2workflow"
+      }
+    },
+    "gluescheduletrigger": {
+      "Type": "AWS::Glue::Trigger",
+      "Properties": {
+        "Actions": [
+          {
+            "JobName": "gluejob2"
+          }
+        ],
+        "Type": "SCHEDULED",
+        "Description": "This is a scheduled glue job trigger"        ,
+        "Name": "gluejob2scheduletrigger",
+        "Schedule": "cron(15 12 ? * 7/7 *)",
+        "StartOnCreation": true,
+        "WorkflowName": "gluejob2workflow"
+      }
+    },
+    "glueconditionaltrigger": {
+      "Type": "AWS::Glue::Trigger",
+      "Properties": {
+        "Actions": [
+          {
+           "CrawlerName": "gluejob2crawler"
+          }
+        ],
+        "Type": "CONDITIONAL",
+        "Description": "This is conditional trigger for glue cfn job",
+        "Name": "gluejob2crawlercondititionaltrigger",
+        "Predicate": {
+          "Conditions": [
+            {
+              "JobName": "gluejob2",
+              "LogicalOperator": "EQUALS",
+              "State": "SUCCEEDED"
+            }
+          ]
+        },
+        "StartOnCreation": true,
+        "WorkflowName": "gluejob2workflow"
+      }
+    }
+  }
+}

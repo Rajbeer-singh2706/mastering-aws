@@ -1,0 +1,42 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description":"CloudFomration template for Glue Job Creation",
+  "Resources": {
+    "glueetljob": {
+      "Type": "AWS::Glue::Job",
+      "Properties": {
+        "Command": {
+          "Name": "glueetl",
+          "ScriptLocation": {
+            "Fn::Join": [
+              "",
+              [
+                "s3://glue-testing-etl-artifacts/gluejob-artifacts/gluejob2",
+                "/",
+                "gluejob2scripts.py"
+              ]
+            ]
+          }
+        },
+        "Role": "gluejobrole1",
+        "DefaultArguments": {
+          "--joblanguage": "python",
+          "--enable-metrics": true,
+          "--job-bookmark-option": "job-bookmark-disable",
+          "--enable-continuous-cloudwatch-log": true,
+          "--s3_source_bucket": "glue-testing-etl-source",
+          "--s3_Destination_bucket": "glue-testing-etl-targets/gluejob2"
+        },
+        "Description": "Second glue job for the glue pipeline",
+        "ExecutionProperty": {
+          "MaxConcurrentRuns": 1
+        },
+        "GlueVersion": "3.0",
+        "MaxRetries": 2,
+        "Name": "gluejob2",
+        "NumberOfWorkers": 2,
+        "WorkerType": "G.1X"
+      }
+    }
+  }
+}

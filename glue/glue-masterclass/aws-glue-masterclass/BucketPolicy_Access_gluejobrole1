@@ -1,0 +1,23 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "DenyOthers",
+            "Effect": "Deny",
+            "Principal": "*",
+            "Action": "s3:*",
+            "Resource": [
+                "arn:aws:s3:::awsglueudemycourse-datasoup-gluejob2-source",
+                "arn:aws:s3:::awsglueudemycourse-datasoup-gluejob2-source/*"
+            ],
+            "Condition": {
+                "ForAnyValue:StringNotLike": {
+                    "aws:PrincipalArn": [
+                        "arn:aws:iam::070058587844:root",
+                        "arn:aws:iam::070058587844:role/gluejobrole1"
+                    ]
+                }
+            }
+        }
+    ]
+}

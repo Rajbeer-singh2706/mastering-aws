@@ -1,0 +1,65 @@
+{
+  "Resources": {
+    "gluejobrole1": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+       "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+               "Service": "glue.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSGlueServiceRole"
+              ]
+            ]
+          }
+        ],
+        "RoleName": "gluejobrole1"
+      }
+    },
+    "glueriamole1inlinepolicy": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+
+            {
+              "Action": "s3:*Object",
+              "Effect": "Allow",
+              "Resource": "arn:aws:s3:::glue-testing-etl-targets/*"
+            },
+            {
+              "Action": "s3:GetObject*",
+              "Effect": "Allow",
+              "Resource": ["arn:aws:s3:::s3://crawlerfiles20june2023/crawlerfiles/lab1/csv/*",
+                "arn:aws:s3:::s3://glue-testing-etl-artifacts/gluejob-artifacts/gluejob1/*",
+                "arn:aws:s3::glue-testing-etl-target/*"]
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "glueriamole1inlinepolicy",
+        "Roles": [
+          {
+            "Ref": "gluejobrole1"
+          }
+        ]
+      }
+    }
+  }
+}

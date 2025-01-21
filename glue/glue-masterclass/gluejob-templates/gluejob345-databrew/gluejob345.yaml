@@ -1,0 +1,118 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  UniquePostfix:
+    Type: String
+    Default: gluejob345
+    Description: 'Enter a unique postfix value, must be all lower cases!'
+  S3Bucket:
+    Type: String
+    Default: s3://
+    Description: 'enter the S3 bucket path for workshop'
+Resources:
+  AWSGlueServiceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Join 
+        - '' 
+        - - AWSGlueServiceRole- 
+          - !Ref UniquePostfix
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: glue.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AmazonS3FullAccess'
+        - 'arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole'
+        - 'arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess'
+        - 'arn:aws:iam::aws:policy/AmazonKinesisFullAccess'
+      Policies:
+        - PolicyName: "iam-passrole"
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: 'iam:PassRole'
+                Resource: !Sub 'arn:aws:iam::${AWS::AccountId}:role/AWSGlueServiceRole-${UniquePostfix}'
+  AWSGlueDataBrewServiceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Join 
+        - ''
+        - - AWSGlueDataBrewServiceRole-
+          - !Ref UniquePostfix
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: databrew.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AmazonS3FullAccess'
+        - 'arn:aws:iam::aws:policy/service-role/AWSGlueDataBrewServiceRole'
+  KinesisStream: 
+    Type: AWS::Kinesis::Stream 
+    Properties: 
+        Name: !Ref UniquePostfix  
+        RetentionPeriodHours: 24 
+        ShardCount: 1
+  GlueCatalogDatabase:
+    Type: AWS::Glue::Database
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseInput:
+        Name: !Join 
+            - '' 
+            - - !Ref UniquePostfix 
+              - -cloudformation 
+        Description: Database to tables for workshop
+  JsonStreamingTable:
+    DependsOn: GlueCatalogDatabase
+    Type: AWS::Glue::Table
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseName: !Ref GlueCatalogDatabase
+      TableInput:
+        Name: json-streaming-table
+        Description: Define schema for streaming json
+        TableType: EXTERNAL_TABLE
+        Parameters: { "classification": "json" }
+        StorageDescriptor:
+          OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+          InputFormat: org.apache.hadoop.mapred.TextInputFormat
+          Columns:
+          - Name: "uuid"
+            Type: bigint
+          - Name: "country"
+            Type: string
+          - Name: "item type"
+            Type: string
+          - Name: "sales channel"
+            Type: string  
+          - Name: "order priority"
+            Type: string
+          - Name: "order date"
+            Type: string
+          - Name: "region"
+            Type: string
+          - Name: "ship date"
+            Type: string
+          - Name: "units sold"
+            Type: int
+          - Name: "unit price"
+            Type: decimal
+          - Name: "unit cost"
+            Type: decimal
+          - Name: "total revenue"
+            Type: decimal
+          - Name: "total cost"
+            Type: decimal
+          - Name: "total profit"
+            Type: decimal             
+          Parameters: {"endpointUrl": "https://kinesis.us-east-1.amazonaws.com", "streamName": !Ref UniquePostfix,"typeOfData": "kinesis"}
+          SerdeInfo:
+            Parameters: {"paths": "Country,Item Type,Order Date,Order Priority,Region,Sales Channel,Ship Date,Total Cost,Total Profit,Total Revenue,Unit Cost,Unit Price,Units Sold,uuid"}
+            SerializationLibrary: org.openx.data.jsonserde.JsonSerDe      

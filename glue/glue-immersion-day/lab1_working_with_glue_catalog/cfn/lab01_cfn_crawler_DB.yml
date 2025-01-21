@@ -1,0 +1,156 @@
+AWSTemplateFormatVersion: '2010-09-09'
+# Sample CloudFormation template in YAML to demonstrate creating a database and a table
+# The metadata created in the Data Catalog points to the covid lake public S3 bucket
+#
+# Parameters substituted in the Resources section
+# These parameters are names of the resources created in the Data Catalog
+Parameters:
+  DataBucketName:
+      Type: String
+      Description: S3 bucket that holds data for workshop
+      Default: <"paste the bucket name you have created">
+  CFNCrawlerName1:  
+      Type: String
+      Default: cfn-crawler-csv-direct
+  CFNCrawlerName2:  
+      Type: String
+      Default: cfn-crawler-json-direct
+  CFNDatabaseName:
+      Type: String
+      Default: cfn_covid_lake_direct
+  CFNTablePrefixName:
+    Type: String
+    Default: cfn_
+  CFNTableName1:
+    Type: String
+    Default: direct_csv
+
+# Resources to create metadata in the Data Catalog
+Resources:
+###
+#Create IAM Role assumed by the crawler. For demonstration, this role is given all permissions.
+  CFNRoleCovidLake:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "glue.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        -
+          PolicyName: "root"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action: "*"
+                Resource: "*"
+# Create an AWS Glue database
+  CFNDatabaseCovid:
+    Type: AWS::Glue::Database
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseInput:
+        Name: !Ref CFNDatabaseName  
+        Description: Database to hold tables for covid data
+###
+# Create an AWS Glue table
+  CFNTableCSV:
+    # Creating the table waits for the database to be created
+    DependsOn: CFNDatabaseCovid
+    Type: AWS::Glue::Table
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseName: !Ref CFNDatabaseName
+      TableInput:
+        Name: !Ref CFNTableName1
+        Description: covid csv data
+        TableType: EXTERNAL_TABLE
+        Parameters: {
+    "classification": "csv"
+  }
+#       ViewExpandedText: String
+        StorageDescriptor:
+          OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+          Columns:
+          - Name: uuid
+            Type: bigint
+          - Name: country
+            Type: string
+          - Name: itemtype
+            Type: string
+          - Name: saleschannel
+            Type: string
+          - Name: orderpriority
+            Type: string 
+          - Name: orderdate
+            Type: string 
+          - Name: region
+            Type: string
+          - Name: shipdate
+            Type: string
+          - Name: unitssold
+            Type: bigint
+          - Name: unitprice
+            Type: double
+          - Name: unitcost
+            Type: double 
+          - Name: totalrevenue
+            Type: double    
+          - Name: totalcost
+            Type: double 
+          - Name: totalprofit
+            Type: double     
+          InputFormat: org.apache.hadoop.mapred.TextInputFormat
+          Location: s3://glueworkshop-vaibagr-051121/input/lab1/csv/
+          SerdeInfo:
+            Parameters:
+              field.delim: ","
+            SerializationLibrary: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
+###
+#Create a crawler to crawl the workshop CSV data
+  CFNCrawlerCSV:
+    Type: AWS::Glue::Crawler
+    Properties:
+      Name: !Ref CFNCrawlerName1
+      Role: !GetAtt CFNRoleCovidLake.Arn
+      #Classifiers: none, use the default classifier
+      Description: AWS Glue crawler to crawl covid lake data
+      #Schedule: none, use default run-on-demand
+      DatabaseName: !Ref CFNDatabaseName
+      Targets:
+        S3Targets:
+          # Public S3 bucket with the flights data
+          - Path: !Join ["", ["s3://", !Ref "DataBucketName", "/input/lab1/csv/"]]
+      TablePrefix: !Ref CFNTablePrefixName
+      SchemaChangePolicy:
+        UpdateBehavior: "UPDATE_IN_DATABASE"
+        DeleteBehavior: "LOG"
+      Configuration: "{\"Version\":1.0,\"CrawlerOutput\":{\"Partitions\":{\"AddOrUpdateBehavior\":\"InheritFromTable\"},\"Tables\":{\"AddOrUpdateBehavior\":\"MergeNewColumns\"}}}"
+#Create a crawler to crawl the workshop JSON data
+  CFNCrawlerJSON:
+    Type: AWS::Glue::Crawler
+    Properties:
+      Name: !Ref CFNCrawlerName2
+      Role: !GetAtt CFNRoleCovidLake.Arn
+      #Classifiers: none, use the default classifier
+      Description: AWS Glue crawler to crawl covid lake data
+      #Schedule: none, use default run-on-demand
+      DatabaseName: !Ref CFNDatabaseName
+      Targets:
+        S3Targets:
+          # Public S3 bucket with the flights data
+          - Path: !Join ["", ["s3://", !Ref "DataBucketName", "/input/lab5/json/"]]
+      TablePrefix: !Ref CFNTablePrefixName
+      SchemaChangePolicy:
+        UpdateBehavior: "UPDATE_IN_DATABASE"
+        DeleteBehavior: "LOG"
+      Configuration: "{\"Version\":1.0,\"CrawlerOutput\":{\"Partitions\":{\"AddOrUpdateBehavior\":\"InheritFromTable\"},\"Tables\":{\"AddOrUpdateBehavior\":\"MergeNewColumns\"}}}"
